@@ -319,3 +319,6 @@ bash tools/run_all_gates.sh --stage build   # только то, что нужн
 Claude: `python3 tools/collab_claude_once.py RECORD NEW_EVIDENCE_DIR`.
 Страж паритета и состояния: `python3 tools/check_collab_integrity.py --mirror MIRROR --record RECORD --json`;
 самопроверка с поломками: `python3 tools/check_collab_integrity.py --selftest`.
+
+Обратная консультация из Claude: `python3 tools/collab_codex_once.py RECORD NEW_EVIDENCE_DIR`;
+оба runner принимают `--evidence FILE` с дословным диффом и результатами проверок.

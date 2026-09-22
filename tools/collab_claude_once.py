@@ -14,7 +14,7 @@ def response_text(returncode, stdout):
     data = json.loads(stdout)
     if data.get('is_error') or data.get('subtype') != 'success':
         raise ValueError('Claude did not complete successfully')
-    if not data.get('session_id') or not str(data.get('result', '')).strip():
+    if not data.get('session_id') or not isinstance(data.get('result'),str) or not data['result'].strip():
         raise ValueError('Missing session or substantive response')
     return data['result']
 
@@ -24,6 +24,7 @@ def main():
     ap.add_argument('record', type=Path)
     ap.add_argument('output', type=Path, help='New directory; never overwrite an earlier consultation')
     ap.add_argument('--binary', type=Path)
+    ap.add_argument('--evidence', type=Path, help='Verbatim diff and test results to review')
     args = ap.parse_args()
     binary = args.binary
     if binary is None:
@@ -41,8 +42,11 @@ def main():
               'Факты из цитат не выдавай за лично проверенные. Ты не автор прежнего чата. '
               'Укажи условия согласования и оставшиеся проверки.\n\nКАНОН ДОСЛОВНО:\n' +
               canon.read_text() + '\n\nОБЩАЯ ЗАПИСЬ ДОСЛОВНО:\n' + args.record.read_text())
+    if args.evidence:
+        prompt += '\n\nДОКАЗАТЕЛЬСТВА И ДИФФ ДОСЛОВНО:\n' + args.evidence.read_text()
     (args.output / 'prompt.txt').write_text(prompt)
-    command = [str(binary), '-p', '--tools', '', '--max-turns', '1',
+    command = [str(binary), '-p', '--tools', '', '--max-turns', '3',
+               '--restricted', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
                '--output-format', 'json', '--no-session-persistence']
     meta = {'command': command, 'started_at': datetime.now(timezone.utc).isoformat(),
             'authMethod': info['authMethod'], 'timeout_seconds': 180, 'state': 'started'}
@@ -56,7 +60,12 @@ def main():
         (args.output / 'answer.md').write_text(answer)
         assert (args.output / 'answer.md').read_text() == answer
         meta['state'] = 'response_received'
-    except (subprocess.TimeoutExpired, ValueError) as exc:
+    except (subprocess.TimeoutExpired, ValueError, OSError) as exc:
+        if isinstance(exc,subprocess.TimeoutExpired):
+            for name,value in [('stdout.json',exc.stdout),('stderr.txt',exc.stderr)]:
+                if isinstance(value,bytes):
+                    value = value.decode('utf-8',errors='replace')
+                (args.output/name).write_text(value or '')
         meta['state'] = 'no_response'
         meta['error'] = type(exc).__name__
         raise SystemExit('No valid response; do not mark agreement or retry automatically') from exc
