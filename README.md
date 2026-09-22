@@ -312,3 +312,10 @@ bash tools/run_all_gates.sh --stage build   # только то, что нужн
 Полная документация платформы: [extella.ai/guide.html](https://extella.ai/guide.html) ·
 [extella.ai/api.html](https://extella.ai/api.html). Владелец стандарта: Extella
 (Chariot Technologies Lab). Лицензия: [MIT](LICENSE).
+
+### Проверка совместной работы Claude × Codex
+
+Канон: [CLAUDE_CODEX_PROTOCOL.md](CLAUDE_CODEX_PROTOCOL.md). Ограниченная доставка
+Claude: `python3 tools/collab_claude_once.py RECORD NEW_EVIDENCE_DIR`.
+Страж паритета и состояния: `python3 tools/check_collab_integrity.py --mirror MIRROR --record RECORD --json`;
+самопроверка с поломками: `python3 tools/check_collab_integrity.py --selftest`.
